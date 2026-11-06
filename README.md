@@ -117,25 +117,22 @@ Note the final URL — it must match `APP_URL` in step 5.
 
 ### 7. Make yourself the admin, then add the flats
 
-1. Open the deployed site, sign in with your email, and fill in the sign-up form (pick any
-   flat — the list is empty at first, so run the flats insert below before this if the
-   dropdown is empty).
+1. Load the flat list first, so the sign-up form has something to choose from. In the SQL
+   Editor, run [`supabase/seed/flats.sql`](supabase/seed/flats.sql) — it creates all 88
+   flats (wings A and B, 11 floors, 4 per floor: `A-101` … `B-1104`). Safe to re-run.
 
-   ```sql
-   -- A starting flat so you can register; add the rest from the app afterwards.
-   insert into flats (wing, number) values ('A', '101');
-   ```
+2. Open the deployed site, sign in with your email, and fill in the sign-up form.
 
-2. Promote yourself in the SQL Editor:
+3. Promote yourself in the SQL Editor:
 
    ```sql
    update profiles set role = 'admin', status = 'approved'
    where email = 'you@example.com';
    ```
 
-3. Reload the app. An **Admin** tab appears. Under **Flats**, paste the society's full flat
-   list (one per line, `A-101` style) and add them. Under **Members**, approve residents as
-   they sign up and set the secretary/treasurer to **Committee** or **Admin**.
+4. Reload the app. An **Admin** tab appears. Under **Members**, approve residents as they
+   sign up and set the secretary, treasurer and committee members to **Committee** or
+   **Admin**. Under **Flats** you can add or remove flats later without touching SQL.
 
    | Role | Can do |
    | --- | --- |
@@ -195,6 +192,29 @@ Attach the APK file to the same message.
 
 ## Day-to-day
 
+### When the committee changes
+
+Nothing needs rebuilding or redeploying. New-request emails go to whoever currently holds
+the **Committee** or **Admin** role, looked up fresh every time an email is sent. So at
+handover the outgoing admin just opens **Admin → Members** and:
+
+1. sets the incoming members to **Committee**, and at least one to **Admin**;
+2. sets the outgoing members back to **Resident** — they keep their own flat and requests,
+   they simply stop receiving committee email and lose the Admin tab.
+
+Do step 1 before step 2, so there is always at least one Admin.
+
+Two things are *not* dynamic, and both are deliberate:
+
+- **The "from" address** (`MAIL_FROM_EMAIL`). Use a society-owned mailbox such as
+  `viomresidency@gmail.com`, never a current member's personal email — otherwise handover
+  breaks the sending address.
+- **The accounts** (Supabase, Vercel, Brevo, GitHub). Create all four under that same
+  society mailbox so they can be handed on with the committee. Changing them later means
+  migrating the database.
+
+### Everyday tasks
+
 | Task | How |
 | --- | --- |
 | Change the app, website and APK behaviour | edit, `vercel --prod` — installed APKs pick it up |
@@ -230,6 +250,7 @@ src/components/      layout shell and shared UI
 src/routes/          resident screens
 src/routes/admin/    committee screens
 supabase/migrations/ schema, RLS, triggers
+supabase/seed/        the society's flat list
 supabase/functions/  the two notification emails
 android/             Capacitor shell (generated, committed so CI can build it)
 .github/workflows/   APK build
