@@ -1,0 +1,75 @@
+name: Build Android APK
+
+# Produces a signed, installable APK as a downloadable artifact. Run it from
+# the Actions tab (Run workflow) whenever the committee needs a fresh APK —
+# normal app changes reach installed phones without one.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Write web build environment
+        run: |
+          cat > .env <<ENV
+          VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SOCIETY_NAME=${{ vars.SOCIETY_NAME }}
+          ENV
+
+      - run: npm run build
+
+      - name: Sync the web build into the Android project
+        # APP_URL is what makes the APK load the hosted site, so a deployed fix
+        # reaches installed phones with no new APK.
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: npx cap sync android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Decode the signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+
+      - name: Build the release APK
+        working-directory: android
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Confirm the APK is signed
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          test -f "$APK" || { echo "no APK produced"; exit 1; }
+          "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs "$APK"
+          cp "$APK" society-app.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: society-app-apk
+          path: society-app.apk
+          if-no-files-found: error

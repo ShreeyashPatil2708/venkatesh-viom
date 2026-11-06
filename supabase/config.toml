@@ -1,0 +1,9 @@
+project_id = "viom"
+
+# Both functions authenticate themselves with the x-webhook-secret header that
+# the database trigger sends, so Supabase's own JWT check is turned off.
+[functions.notify-new-ticket]
+verify_jwt = false
+
+[functions.notify-status-change]
+verify_jwt = false
