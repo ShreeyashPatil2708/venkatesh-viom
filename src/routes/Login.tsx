@@ -26,7 +26,7 @@ export function Login() {
       return
     }
     setStep('code')
-    setNote(`We sent a 6-digit code to ${email.trim().toLowerCase()}.`)
+    setNote(`We sent a code to ${email.trim().toLowerCase()}.`)
   }
 
   async function verify(e: React.FormEvent) {
@@ -73,21 +73,21 @@ export function Login() {
     <CenteredCard title="Enter the code" subtitle={note}>
       <form onSubmit={verify} className="space-y-4">
         {error && <Alert>{error}</Alert>}
-        <Field label="6-digit code" hint="Check your spam folder if it hasn't arrived." required>
+        <Field label="Sign-in code" hint="Check your spam folder if it hasn't arrived." required>
           <input
-            className="input text-center text-2xl tracking-[0.4em]"
+            className="input text-center text-2xl tracking-[0.3em]"
             inputMode="numeric"
             autoComplete="one-time-code"
             pattern="[0-9]*"
-            maxLength={6}
+            maxLength={10}
             required
             autoFocus
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-            placeholder="······"
+            placeholder="Code from the email"
           />
         </Field>
-        <button className="btn-primary w-full" disabled={busy || code.length !== 6}>
+        <button className="btn-primary w-full" disabled={busy || code.length < 6}>
           {busy ? <Spinner /> : 'Sign in'}
         </button>
         <div className="flex justify-between text-sm">
