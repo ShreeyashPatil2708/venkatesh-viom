@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
+import { useNotifications } from '../lib/notifications'
 
 const SOCIETY_NAME = import.meta.env.VITE_SOCIETY_NAME || 'Venkatesh Viom'
 
@@ -36,6 +37,8 @@ const TABS = [
 
 export function Layout() {
   const { isCommittee } = useAuth()
+  const { unread } = useNotifications()
+  const navigate = useNavigate()
   const tabs = isCommittee
     ? [...TABS, { to: '/admin', label: 'Admin', icon: ICONS.admin, end: false }]
     : TABS
@@ -43,8 +46,20 @@ export function Layout() {
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-10 border-b border-line bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-3xl items-center px-4">
-          <span className="truncate font-bold tracking-tight">{SOCIETY_NAME}</span>
+        <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-4">
+          <span className="flex-1 truncate font-bold tracking-tight">{SOCIETY_NAME}</span>
+          <button
+            onClick={() => navigate('/notifications')}
+            aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
+            className="relative -mr-2 rounded-full p-2 text-muted transition hover:bg-canvas hover:text-ink"
+          >
+            <Icon path="M18 16v-5a6 6 0 1 0-12 0v5l-1.5 2.5h15L18 16ZM10 20.5a2 2 0 0 0 4 0" />
+            {unread > 0 && (
+              <span className="absolute top-0.5 right-0.5 flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-bold text-white">
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+          </button>
         </div>
       </header>
 

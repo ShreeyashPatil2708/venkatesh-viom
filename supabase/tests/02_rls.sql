@@ -270,3 +270,107 @@ select admin_update_ticket((select id from tickets where subject = 'Parking rule
 commit;
 select assert_eq((select count(*)::int from net._calls), 1,
                  'status change with a note emails once, not twice');
+
+-- ============ in-app notifications
+-- Resident A raises something; both committee members should be told, and A
+-- should not be told about their own request.
+delete from notifications;
+begin;
+set local role authenticated;
+set local test.uid = :'A';
+insert into tickets (flat_id, created_by, category, subject, description)
+values (:'FA', :'A', 'complaint', 'Lift stuck', 'The lift is stuck on floor 3.');
+commit;
+
+-- Three hold a committee role by this point: the admin, the treasurer, and
+-- the member promoted in the handover test above.
+select assert_eq((select count(*)::int from notifications), 3,
+                 'every committee member is notified of a new request');
+select assert_eq((select count(*)::int from notifications where user_id = :'A'), 0,
+                 'the raiser is not notified of their own request');
+select assert_eq((select title from notifications limit 1), 'Complaint from A-101',
+                 'the notification names the type and flat');
+
+-- The resident sees only their own notifications.
+begin;
+set local role authenticated;
+set local test.uid = :'A';
+select assert_eq((select count(*)::int from notifications), 0,
+                 'A cannot see the committee notifications');
+commit;
+
+begin;
+set local role authenticated;
+set local test.uid = :'C';
+select assert_eq((select count(*)::int from notifications), 1, 'committee sees their own');
+commit;
+
+-- Resolving it notifies the resident and carries the committee message.
+begin;
+set local role authenticated;
+set local test.uid = :'C';
+select admin_update_ticket((select id from tickets where subject = 'Lift stuck'),
+                           'resolved', 'Technician fixed it this morning.', true);
+commit;
+
+select assert_eq((select count(*)::int from notifications
+                  where user_id = :'A' and kind = 'status_change'), 1,
+                 'the resident is notified when it is resolved');
+select assert_eq((select body from notifications
+                  where user_id = :'A' and kind = 'status_change'),
+                 'Technician fixed it this morning.',
+                 'the committee message rides along');
+select assert_eq((select title from notifications
+                  where user_id = :'A' and kind = 'status_change'),
+                 'Lift stuck is resolved', 'the title says what happened');
+
+-- An internal note must not reach the resident here either.
+delete from notifications;
+begin;
+set local role authenticated;
+set local test.uid = :'C';
+select admin_update_ticket((select id from tickets where subject = 'Lift stuck'),
+                           null, 'Invoice still pending from the contractor.', false);
+commit;
+select assert_eq((select count(*)::int from notifications), 0,
+                 'an internal note creates no notification');
+
+-- A resident may mark their own read, but may not rewrite it.
+delete from notifications;
+begin;
+set local role authenticated;
+set local test.uid = :'C';
+select admin_update_ticket((select id from tickets where subject = 'Lift stuck'),
+                           null, 'Lift is under warranty.', true);
+commit;
+
+begin;
+set local role authenticated;
+set local test.uid = :'A';
+select assert_eq((select count(*)::int from notifications where read_at is null), 1,
+                 'the reply arrives unread');
+update notifications set read_at = now() where user_id = auth.uid();
+select assert_eq((select count(*)::int from notifications where read_at is null), 0,
+                 'the resident can mark it read');
+select assert_blocked('update notifications set title = ''Hacked'' where user_id = auth.uid()',
+                      'the resident cannot rewrite a notification');
+commit;
+
+-- ============ a committee member is also an ordinary resident
+begin;
+set local role authenticated;
+set local test.uid = :'C';
+insert into tickets (flat_id, created_by, category, subject, description)
+values (:'FA', :'C', 'complaint', 'My own tap leaks', 'The kitchen tap in my flat leaks.');
+select assert_eq((select count(*)::int from tickets where created_by = :'C'), 1,
+                 'a committee member can raise their own request');
+commit;
+
+begin;
+set local role authenticated;
+set local test.uid = :'ADM';
+select assert_eq((select count(*)::int from notifications
+                  where user_id = :'ADM' and kind = 'new_ticket'
+                  and title like '%A-101%'), 1,
+                 'the other committee member is told about it');
+commit;

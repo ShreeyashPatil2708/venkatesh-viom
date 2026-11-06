@@ -8,6 +8,7 @@ import { Login } from './routes/Login'
 import { MyRequests } from './routes/MyRequests'
 import { NewRequest } from './routes/NewRequest'
 import { Notices } from './routes/Notices'
+import { NotificationsScreen } from './routes/NotificationsScreen'
 import { ProfileScreen } from './routes/ProfileScreen'
 import { AwaitingApproval, Register } from './routes/Register'
 import { TicketDetail } from './routes/TicketDetail'
@@ -56,6 +57,7 @@ function SignedInApp() {
         <Route path="new" element={<NewRequest />} />
         <Route path="t/:id" element={<TicketDetail />} />
         <Route path="notices" element={<Notices />} />
+        <Route path="notifications" element={<NotificationsScreen />} />
         <Route path="profile" element={<ProfileScreen />} />
         {isCommittee && (
           <Route path="admin" element={<AdminLayout />}>

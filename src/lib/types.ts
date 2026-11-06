@@ -58,6 +58,19 @@ export type Notice = {
   created_at: string
 }
 
+export type NotificationKind = 'new_ticket' | 'status_change' | 'committee_note'
+
+export type AppNotification = {
+  id: string
+  user_id: string
+  ticket_id: string | null
+  kind: NotificationKind
+  title: string
+  body: string | null
+  read_at: string | null
+  created_at: string
+}
+
 /** Ticket joined with the flat and author rows the lists display. */
 export type TicketWithRelations = Ticket & {
   flats: Pick<Flat, 'label'> | null
