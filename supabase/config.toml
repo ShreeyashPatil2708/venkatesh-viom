@@ -7,3 +7,6 @@ verify_jwt = false
 
 [functions.notify-status-change]
 verify_jwt = false
+
+[functions.send-push]
+verify_jwt = false

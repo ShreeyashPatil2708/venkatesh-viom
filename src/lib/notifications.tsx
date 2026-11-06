@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from './auth'
+import { registerPush } from './push'
 import { supabase } from './supabase'
 
 type NotificationState = {
@@ -30,6 +31,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       .select('id', { count: 'exact', head: true })
       .is('read_at', null)
     setUnread(count ?? 0)
+  }, [session, approved])
+
+  // Push only matters once they are through the approval gate; before that
+  // there is nothing to tell them about.
+  useEffect(() => {
+    if (!session || !approved) return
+    let cleanup: (() => void) | undefined
+    void registerPush(session.user.id).then((fn) => {
+      cleanup = fn
+    })
+    return () => cleanup?.()
   }, [session, approved])
 
   useEffect(() => {

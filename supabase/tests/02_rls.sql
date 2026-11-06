@@ -228,9 +228,11 @@ commit;
 select assert_eq((select count(*)::int from net._calls
                   where url = 'https://test.supabase.co/functions/v1/notify-new-ticket'), 1,
                  'new ticket calls notify-new-ticket once');
-select assert_eq((select headers->>'x-webhook-secret' from net._calls limit 1), 'shhh',
+select assert_eq((select headers->>'x-webhook-secret' from net._calls
+                  where url like '%/notify-new-ticket'), 'shhh',
                  'the webhook carries the shared secret');
-select assert_eq((select (body->>'ticket_id') is not null from net._calls limit 1), true,
+select assert_eq((select (body->>'ticket_id') is not null from net._calls
+                  where url like '%/notify-new-ticket'), true,
                  'the webhook carries the ticket id');
 
 delete from net._calls;
@@ -244,7 +246,8 @@ commit;
 select assert_eq((select count(*)::int from net._calls
                   where url like '%/notify-status-change'), 1,
                  'a status change calls notify-status-change once');
-select assert_eq((select body->>'new_status' from net._calls limit 1), 'resolved',
+select assert_eq((select body->>'new_status' from net._calls
+                  where url like '%/notify-status-change'), 'resolved',
                  'the status webhook names the new status');
 
 -- A visible reply with no status change must still reach the resident.
@@ -255,9 +258,11 @@ set local test.uid = :'C';
 select admin_update_ticket((select id from tickets where subject = 'Parking rules'),
                            null, 'Signage ordered.', true);
 commit;
-select assert_eq((select count(*)::int from net._calls), 1,
+select assert_eq((select count(*)::int from net._calls
+                  where url like '%/notify-status-change'), 1,
                  'a visible reply emails the resident');
-select assert_eq((select body->>'note_only' from net._calls limit 1), 'true',
+select assert_eq((select body->>'note_only' from net._calls
+                  where url like '%/notify-status-change'), 'true',
                  'the reply is flagged as note-only');
 
 -- An internal note must stay silent.
@@ -269,7 +274,7 @@ select admin_update_ticket((select id from tickets where subject = 'Parking rule
                            null, 'Chase the contractor for the invoice.', false);
 commit;
 select assert_eq((select count(*)::int from net._calls), 0,
-                 'an internal note sends no email');
+                 'an internal note sends neither email nor push');
 
 -- A status change carrying a note must send exactly one email, not two.
 delete from net._calls;
@@ -279,7 +284,8 @@ set local test.uid = :'C';
 select admin_update_ticket((select id from tickets where subject = 'Parking rules'),
                            'closed', 'Closing this off.', true);
 commit;
-select assert_eq((select count(*)::int from net._calls), 1,
+select assert_eq((select count(*)::int from net._calls
+                  where url like '%/notify-status-change'), 1,
                  'status change with a note emails once, not twice');
 
 -- ============ in-app notifications
@@ -490,3 +496,32 @@ select assert_eq((select ticket_id is null from notifications where kind = 'new_
 -- Several people may share one flat, each with their own account.
 select assert_eq((select count(*)::int from profiles where flat_id = :'FB') >= 2, true,
                  'a flat can hold more than one resident');
+
+-- ============ push device tokens
+begin;
+set local role authenticated;
+set local test.uid = :'A';
+insert into device_tokens (token, user_id) values ('tokenA', :'A');
+select assert_eq((select count(*)::int from device_tokens), 1, 'a phone registers its own token');
+select assert_blocked(
+  format('insert into device_tokens (token, user_id) values (%L, %L)', 'tokenB', :'B'),
+  'a phone cannot register a token for someone else');
+commit;
+
+begin;
+set local role authenticated;
+set local test.uid = :'B';
+select assert_eq((select count(*)::int from device_tokens), 0,
+                 'tokens are invisible to other residents');
+commit;
+
+-- Every notification queues a push.
+delete from net._calls;
+begin;
+set local role authenticated;
+set local test.uid = :'C';
+select admin_update_ticket((select id from tickets where created_by = :'A' limit 1),
+                           'in_progress', 'Looking into it.', true);
+commit;
+select assert_eq((select count(*)::int from net._calls where url like '%/send-push'), 1,
+                 'a notification queues exactly one push');

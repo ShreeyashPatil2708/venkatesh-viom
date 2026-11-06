@@ -60,9 +60,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [loadProfile, session])
 
   const signOut = useCallback(async () => {
+    // Drop this phone's push registration first, while the session can still
+    // satisfy the row-level security check on device_tokens.
+    try {
+      const { unregisterPush } = await import('./push')
+      await unregisterPush()
+      if (session?.user.id) {
+        await supabase.from('device_tokens').delete().eq('user_id', session.user.id)
+      }
+    } catch {
+      // Signing out matters more than tidying up the token.
+    }
     await supabase.auth.signOut()
     setProfile(null)
-  }, [])
+  }, [session])
 
   const value = useMemo<AuthState>(
     () => ({
