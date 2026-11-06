@@ -5,8 +5,6 @@ name: Build Android APK
 # normal app changes reach installed phones without one.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 jobs:
   apk:
@@ -43,7 +41,10 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: android-actions/setup-android@v3
+      - name: Check the preinstalled Android SDK
+        run: |
+          test -d "$ANDROID_HOME" || { echo "No Android SDK at ANDROID_HOME"; exit 1; }
+          echo "Using SDK at $ANDROID_HOME"
 
       - name: Decode the signing keystore
         env:
