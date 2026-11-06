@@ -469,3 +469,24 @@ select assert_eq((select count(*)::int from (
     select 1 from profiles where status = 'pending' limit 1) p), 0,
   'and the members list still works');
 commit;
+
+-- ============ admins are told when someone signs up
+delete from notifications;
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-00000000000f', 'newcomer@test');
+insert into profiles (id, flat_id, name, mobile, email, resident_type, role, status)
+values ('00000000-0000-0000-0000-00000000000f', :'FB', 'New Comer', '9000000006',
+        'newcomer@test', 'tenant', 'resident', 'pending');
+
+select assert_eq((select count(*)::int from notifications where kind = 'new_member'), 1,
+                 'the admin is told about a new sign-up');
+select assert_eq((select user_id from notifications where kind = 'new_member'), :'ADM',
+                 'and it goes to the admin, not the committee');
+select assert_eq((select title from notifications where kind = 'new_member'),
+                 'New sign-up: New Comer', 'the notification names them');
+select assert_eq((select ticket_id is null from notifications where kind = 'new_member'), true,
+                 'a sign-up notification has no ticket attached');
+
+-- Several people may share one flat, each with their own account.
+select assert_eq((select count(*)::int from profiles where flat_id = :'FB') >= 2, true,
+                 'a flat can hold more than one resident');

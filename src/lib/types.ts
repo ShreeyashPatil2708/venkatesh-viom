@@ -61,7 +61,11 @@ export type Notice = {
   created_at: string
 }
 
-export type NotificationKind = 'new_ticket' | 'status_change' | 'committee_note'
+export type NotificationKind =
+  | 'new_ticket'
+  | 'status_change'
+  | 'committee_note'
+  | 'new_member'
 
 export type AppNotification = {
   id: string

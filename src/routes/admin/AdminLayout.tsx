@@ -1,11 +1,26 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
+import { supabase } from '../../lib/supabase'
 
 export function AdminLayout() {
   const { isAdmin } = useAuth()
+  const [pending, setPending] = useState(0)
+
+  useEffect(() => {
+    if (!isAdmin) return
+    supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending')
+      .then(({ count }) => setPending(count ?? 0))
+  }, [isAdmin])
+
   const tabs = [
     { to: '/admin', label: 'Requests', end: true },
-    ...(isAdmin ? [{ to: '/admin/members', label: 'Members', end: false }] : []),
+    ...(isAdmin
+      ? [{ to: '/admin/members', label: 'Members', end: false, badge: pending }]
+      : []),
     { to: '/admin/notices', label: 'Notices', end: false },
     { to: '/admin/flats', label: 'Flats', end: false },
   ]
@@ -25,6 +40,11 @@ export function AdminLayout() {
             }
           >
             {tab.label}
+            {'badge' in tab && (tab.badge ?? 0) > 0 && (
+              <span className="ml-1.5 rounded-full bg-red-600 px-1.5 text-[11px] font-bold text-white">
+                {tab.badge}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

@@ -36,6 +36,10 @@ export function NotificationsScreen() {
         .eq('id', item.id)
       await refresh()
     }
+    if (item.kind === 'new_member') {
+      navigate('/admin/members')
+      return
+    }
     if (!item.ticket_id) return
     // A new-request alert belongs in the committee view; everything else is
     // about the reader's own request.
