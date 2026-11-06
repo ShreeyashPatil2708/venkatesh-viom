@@ -20,7 +20,10 @@ export function Download() {
         <p className="mt-1 text-sm text-muted">
           Install the app to get it as an icon on your phone.
         </p>
-        <a href="/app/viom.apk" className="btn-primary mt-3 w-full" download>
+        <a
+          href="https://github.com/ShreeyashPatil2708/venkatesh-viom/releases/latest/download/venkatesh-viom.apk"
+          className="btn-primary mt-3 w-full"
+        >
           Download the app
         </a>
         <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-muted">

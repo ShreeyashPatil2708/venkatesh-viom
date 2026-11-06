@@ -9,6 +9,8 @@ on:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -77,3 +79,16 @@ jobs:
           name: venkatesh-viom-apk
           path: venkatesh-viom.apk
           if-no-files-found: error
+
+      # A release gives residents a stable public link to download from:
+      # https://github.com/<owner>/<repo>/releases/latest/download/venkatesh-viom.apk
+      - name: Publish as the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+          gh release create latest venkatesh-viom.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Venkatesh Viom app" \
+            --notes "Install on Android. iPhone and computers use https://venkatesh-viom.vercel.app"
+
