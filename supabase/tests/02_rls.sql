@@ -525,3 +525,23 @@ select admin_update_ticket((select id from tickets where created_by = :'A' limit
 commit;
 select assert_eq((select count(*)::int from net._calls where url like '%/send-push'), 1,
                  'a notification queues exactly one push');
+
+-- ============ a notice reaches every approved resident
+delete from notifications;
+begin;
+set local role authenticated;
+set local test.uid = :'C';
+insert into notices (title, body, created_by)
+values ('Water cut on Sunday', '10am to 2pm, both wings.', :'C');
+commit;
+
+select assert_eq((select count(*)::int from notifications where kind = 'notice') > 0, true,
+                 'posting a notice notifies residents');
+select assert_eq((select count(*)::int from notifications
+                  where kind = 'notice' and user_id = :'C'), 0,
+                 'the author is not notified of their own notice');
+select assert_eq((select count(*)::int from notifications
+                  where kind = 'notice' and user_id = :'A'), 1,
+                 'an ordinary resident is notified');
+select assert_eq((select title from notifications where kind = 'notice' limit 1),
+                 'Water cut on Sunday', 'the notice title carries through');

@@ -31,12 +31,13 @@ cp "$ROOT/supabase/migrations/0002_notifications.sql" "$HERE/.migration2.sql"
 cp "$ROOT/supabase/migrations/0003_tenant_review.sql" "$HERE/.migration3.sql"
 cp "$ROOT/supabase/migrations/0004_signup_notification.sql" "$HERE/.migration4.sql"
 cp "$ROOT/supabase/migrations/0005_push.sql" "$HERE/.migration5.sql"
+cp "$ROOT/supabase/migrations/0006_notice_notifications.sql" "$HERE/.migration6.sql"
 
 docker exec "$CONTAINER" psql -U postgres -q \
   -c 'drop database if exists t' -c 'create database t' >/dev/null
 
 status=0
-for f in 00_stubs .migration .migration2 .migration3 .migration4 .migration5 01_seed 02_rls; do
+for f in 00_stubs .migration .migration2 .migration3 .migration4 .migration5 .migration6 01_seed 02_rls; do
   docker cp "$HERE/$f.sql" "$CONTAINER:/tmp/" >/dev/null
   if out=$(docker exec "$CONTAINER" psql -U postgres -d t -q -t -v ON_ERROR_STOP=1 \
            -f "/tmp/$f.sql" 2>&1); then :; else status=1; fi

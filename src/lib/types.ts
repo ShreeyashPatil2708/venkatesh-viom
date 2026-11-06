@@ -66,6 +66,7 @@ export type NotificationKind =
   | 'status_change'
   | 'committee_note'
   | 'new_member'
+  | 'notice'
 
 export type AppNotification = {
   id: string
