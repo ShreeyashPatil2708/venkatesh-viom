@@ -125,6 +125,41 @@ export function Register() {
   )
 }
 
+/** A tenant's yearly approval has lapsed and only an admin can restore it. */
+export function RenewalNeeded() {
+  const { profile, refreshProfile, signOut } = useAuth()
+  const [busy, setBusy] = useState(false)
+
+  return (
+    <CenteredCard
+      title="Your tenancy needs confirming"
+      subtitle="Tenant access is confirmed by the committee once a year, and yours is due."
+    >
+      <div className="space-y-4">
+        <Alert kind="info">
+          Ask the secretary to confirm you still live in{' '}
+          {profile?.name ? 'your flat' : 'the flat'}. Your past requests are safe and will
+          still be here. You'll be able to raise new ones as soon as it's done.
+        </Alert>
+        <button
+          className="btn-secondary w-full"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true)
+            await refreshProfile()
+            setBusy(false)
+          }}
+        >
+          {busy ? <Spinner /> : 'Check again'}
+        </button>
+        <button className="btn-ghost w-full" onClick={signOut}>
+          Sign out
+        </button>
+      </div>
+    </CenteredCard>
+  )
+}
+
 /** Approval gate: the account exists but the committee hasn't confirmed the flat yet. */
 export function AwaitingApproval() {
   const { profile, refreshProfile, signOut } = useAuth()

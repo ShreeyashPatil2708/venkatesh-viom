@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Alert, Field, PageHeader, Spinner } from '../components/ui'
+import { Alert, Field, PageHeader, Spinner, formatDate } from '../components/ui'
+import { isReviewDueSoon, reviewDaysLeft } from '../lib/review'
 import { useAuth } from '../lib/auth'
 import { errorMessage, supabase } from '../lib/supabase'
 import { ROLE_LABEL } from '../lib/types'
@@ -51,12 +52,21 @@ export function ProfileScreen() {
     <>
       <PageHeader title="Profile" />
       <div className="space-y-4">
+        {profile && isReviewDueSoon(profile) && (
+          <Alert kind="info">
+            Tenant access is confirmed by the committee once a year. Yours is due in{' '}
+            {reviewDaysLeft(profile)} days — the committee can already see it on their list.
+          </Alert>
+        )}
         <dl className="card divide-y divide-line">
           {[
             ['Flat', flatLabel || '—'],
             ['You are', profile ? (profile.resident_type === 'owner' ? 'Owner' : 'Tenant') : '—'],
             ['Email', profile?.email ?? '—'],
             ['Role', profile ? ROLE_LABEL[profile.role] : '—'],
+            ...(profile?.review_due_at
+              ? [['Confirmed until', formatDate(profile.review_due_at)] as [string, string]]
+              : []),
           ].map(([key, value]) => (
             <div key={key} className="flex items-center justify-between gap-3 px-4 py-3">
               <dt className="text-sm text-muted">{key}</dt>

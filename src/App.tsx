@@ -3,6 +3,7 @@ import { CenteredCard, Layout } from './components/Layout'
 import { Alert, FullPageSpinner } from './components/ui'
 import { useAuth } from './lib/auth'
 import { isConfigured } from './lib/supabase'
+import { isReviewExpired } from './lib/review'
 import { Download } from './routes/Download'
 import { Login } from './routes/Login'
 import { MyRequests } from './routes/MyRequests'
@@ -10,7 +11,7 @@ import { NewRequest } from './routes/NewRequest'
 import { Notices } from './routes/Notices'
 import { NotificationsScreen } from './routes/NotificationsScreen'
 import { ProfileScreen } from './routes/ProfileScreen'
-import { AwaitingApproval, Register } from './routes/Register'
+import { AwaitingApproval, Register, RenewalNeeded } from './routes/Register'
 import { TicketDetail } from './routes/TicketDetail'
 import { AdminFlats } from './routes/admin/AdminFlats'
 import { AdminLayout } from './routes/admin/AdminLayout'
@@ -49,6 +50,9 @@ function SignedInApp() {
   if (!session) return <Login />
   if (!profile) return <Register />
   if (profile.status !== 'approved') return <AwaitingApproval />
+  // A committee member whose own tenancy review lapses keeps the panel, so the
+  // committee can never lock itself out.
+  if (isReviewExpired(profile) && !isCommittee) return <RenewalNeeded />
 
   return (
     <Routes>

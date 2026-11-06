@@ -72,11 +72,22 @@ select assert_blocked(
   'update profiles set role = ''admin'' where id = auth.uid()',
   'A cannot make themselves admin');
 select assert_blocked(
-  'update profiles set status = ''approved'' where id = auth.uid()',
-  'A cannot change their own status');
+  'update profiles set resident_type = ''owner'', role = ''committee'' where id = auth.uid()',
+  'A cannot give themselves a committee role');
 update profiles set name = 'Resident A2', mobile = '9111111111' where id = auth.uid();
 select assert_eq((select name from profiles where id = :'A'), 'Resident A2',
                  'A can edit their own name');
+commit;
+
+-- The real self-approval attack: a pending user approving themselves.
+begin;
+set local role authenticated;
+set local test.uid = :'P';
+select assert_blocked(
+  'update profiles set status = ''approved'' where id = auth.uid()',
+  'a pending user cannot approve themselves');
+select assert_eq((select status::text from profiles where id = :'P'), 'pending',
+                 'and they are still pending afterwards');
 commit;
 
 -- ============ committee sees everything and can act
@@ -373,4 +384,88 @@ select assert_eq((select count(*)::int from notifications
                   where user_id = :'ADM' and kind = 'new_ticket'
                   and title like '%A-101%'), 1,
                  'the other committee member is told about it');
+commit;
+
+-- ============ a tenant's approval expires after a year, an owner's does not
+-- B is a tenant (seeded that way), A is an owner.
+select assert_eq((select review_due_at is not null from profiles where id = :'B'), true,
+                 'the tenant has a review date');
+select assert_eq((select review_due_at is null from profiles where id = :'A'), true,
+                 'the owner has no review date');
+select assert_eq(
+  (select date_trunc('day', review_due_at) = date_trunc('day', now() + interval '1 year')
+   from profiles where id = :'B'), true, 'the tenant review falls a year out');
+
+-- Wind B's review into the past and they should lose the ability to raise
+-- anything new, while keeping their account and their history.
+alter table profiles disable trigger profiles_set_review_dates;
+update profiles set review_due_at = now() - interval '1 day' where id = :'B';
+alter table profiles enable trigger profiles_set_review_dates;
+
+begin;
+set local role authenticated;
+set local test.uid = :'B';
+select assert_blocked(
+  format('insert into tickets (flat_id, created_by, category, subject, description)
+          values (%L, %L, %L, %L, %L)', :'FB', :'B', 'complaint', 'After expiry', 'Should fail'),
+  'an expired tenant cannot raise a request');
+select assert_eq((select count(*)::int from tickets where created_by = :'B') > 0, true,
+                 'an expired tenant still sees their past requests');
+select assert_eq((select count(*)::int from notices), 0,
+                 'an expired tenant cannot read notices');
+commit;
+
+-- Only an admin may renew.
+begin;
+set local role authenticated;
+set local test.uid = :'C';
+select assert_blocked(format('select renew_resident(%L)', :'B'),
+                      'a committee member cannot renew a tenant');
+commit;
+
+begin;
+set local role authenticated;
+set local test.uid = :'ADM';
+select renew_resident(:'B');
+commit;
+
+select assert_eq((select review_due_at > now() + interval '300 days' from profiles where id = :'B'),
+                 true, 'renewing pushes the review a year out');
+
+begin;
+set local role authenticated;
+set local test.uid = :'B';
+insert into tickets (flat_id, created_by, category, subject, description)
+values (:'FB', :'B', 'complaint', 'After renewal', 'Should now succeed.');
+select assert_eq((select count(*)::int from tickets where subject = 'After renewal'), 1,
+                 'a renewed tenant can raise requests again');
+commit;
+
+-- Switching someone from tenant to owner clears the expiry, and back again
+-- sets a fresh one.
+begin;
+set local role authenticated;
+set local test.uid = :'ADM';
+update profiles set resident_type = 'owner' where id = :'B';
+select assert_eq((select review_due_at is null from profiles where id = :'B'), true,
+                 'promoting a tenant to owner clears the review date');
+update profiles set resident_type = 'tenant' where id = :'B';
+select assert_eq((select review_due_at is not null from profiles where id = :'B'), true,
+                 'switching back to tenant sets a review date again');
+commit;
+
+-- An admin who is also a tenant keeps the admin panel even when their own
+-- tenancy review lapses, so the committee can never lock itself out.
+alter table profiles disable trigger profiles_set_review_dates;
+update profiles set resident_type = 'tenant', review_due_at = now() - interval '1 day'
+where id = :'ADM';
+alter table profiles enable trigger profiles_set_review_dates;
+begin;
+set local role authenticated;
+set local test.uid = :'ADM';
+select assert_eq((select count(*)::int from tickets) > 0, true,
+                 'an expired admin still sees every request');
+select assert_eq((select count(*)::int from (
+    select 1 from profiles where status = 'pending' limit 1) p), 0,
+  'and the members list still works');
 commit;

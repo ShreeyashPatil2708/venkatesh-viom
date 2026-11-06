@@ -20,6 +20,9 @@ export type Profile = {
   resident_type: ResidentType
   role: UserRole
   status: ProfileStatus
+  approved_at: string | null
+  /** When an admin must re-confirm a tenant. Null for owners, who never expire. */
+  review_due_at: string | null
   created_at: string
 }
 

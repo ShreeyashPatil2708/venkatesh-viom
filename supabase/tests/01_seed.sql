@@ -10,15 +10,24 @@ begin
   raise notice 'pass  %', label;
 end $$;
 
--- Raises only if the statement did NOT fail: used for "must be blocked" cases.
+-- Fails only if the statement was ALLOWED. The catch has to sit in an inner
+-- block: raising the failure inside the handler would catch itself, which
+-- would make every one of these assertions pass regardless.
 create or replace function assert_blocked(sql text, label text)
 returns void language plpgsql as $$
+declare
+  blocked boolean := false;
 begin
-  execute sql;
-  raise exception 'FAIL % : the statement was allowed but should have been blocked', label;
-exception
-  when insufficient_privilege or raise_exception or check_violation then
-    raise notice 'pass  % (blocked)', label;
+  begin
+    execute sql;
+  exception
+    when insufficient_privilege or raise_exception or check_violation then
+      blocked := true;
+  end;
+  if not blocked then
+    raise exception 'FAIL % : allowed, but should have been blocked', label;
+  end if;
+  raise notice 'pass  %  (blocked)', label;
 end $$;
 
 insert into auth.users (id, email) values

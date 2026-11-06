@@ -2,7 +2,14 @@ import { useCallback, useEffect, useState } from 'react'
 import { Alert, EmptyState, PageHeader, Spinner, formatDate } from '../../components/ui'
 import { useAuth } from '../../lib/auth'
 import { errorMessage, supabase } from '../../lib/supabase'
-import { ROLE_LABEL, type Profile, type ProfileStatus, type UserRole } from '../../lib/types'
+import { isReviewDueSoon, isReviewExpired, reviewDaysLeft } from '../../lib/review'
+import {
+  ROLE_LABEL,
+  type Profile,
+  type ProfileStatus,
+  type ResidentType,
+  type UserRole,
+} from '../../lib/types'
 
 type Row = Profile & { flats: { label: string } | null }
 
@@ -26,7 +33,19 @@ export function AdminMembers() {
     void load()
   }, [load])
 
-  async function patch(id: string, changes: { status?: ProfileStatus; role?: UserRole }) {
+  async function renew(id: string) {
+    setBusyId(id)
+    setError('')
+    const { error } = await supabase.rpc('renew_resident', { p_id: id })
+    if (error) setError(errorMessage(error))
+    await load()
+    setBusyId('')
+  }
+
+  async function patch(
+    id: string,
+    changes: { status?: ProfileStatus; role?: UserRole; resident_type?: ResidentType },
+  ) {
     setBusyId(id)
     setError('')
     const { error } = await supabase.from('profiles').update(changes).eq('id', id)
@@ -36,7 +55,19 @@ export function AdminMembers() {
   }
 
   const pending = (rows ?? []).filter((row) => row.status === 'pending')
+  // Tenants are confirmed yearly, so surface the ones that have lapsed or are
+  // about to before they quietly lose access.
+  const dueReview = (rows ?? []).filter(
+    (row) => row.status === 'approved' && (isReviewExpired(row) || isReviewDueSoon(row)),
+  )
   const others = (rows ?? []).filter((row) => row.status !== 'pending')
+
+  function reviewNote(row: Row): string | null {
+    const days = reviewDaysLeft(row)
+    if (days === null) return null
+    if (days <= 0) return `Tenancy confirmation lapsed ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} ago`
+    return `Tenancy to confirm in ${days} day${days === 1 ? '' : 's'}`
+  }
 
   if (rows === null) {
     return (
@@ -89,6 +120,44 @@ export function AdminMembers() {
         )}
       </section>
 
+      {dueReview.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-2 text-sm font-semibold text-muted uppercase">
+            Tenants to confirm ({dueReview.length})
+          </h2>
+          <div className="space-y-3">
+            {dueReview.map((row) => (
+              <div
+                key={row.id}
+                className={`card p-4 ${isReviewExpired(row) ? 'border-amber-300 bg-amber-50/60' : ''}`}
+              >
+                <p className="font-semibold">{row.name}</p>
+                <p className="text-sm text-muted">
+                  {row.flats?.label ?? 'No flat'} · {row.mobile}
+                </p>
+                <p className="mt-1 text-sm font-medium text-amber-900">{reviewNote(row)}</p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    className="btn-primary"
+                    disabled={busyId === row.id}
+                    onClick={() => renew(row.id)}
+                  >
+                    {busyId === row.id ? <Spinner /> : 'Still lives here'}
+                  </button>
+                  <button
+                    className="btn-danger"
+                    disabled={busyId === row.id}
+                    onClick={() => patch(row.id, { status: 'rejected' })}
+                  >
+                    Moved out
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section>
         <h2 className="mb-2 text-sm font-semibold text-muted uppercase">
           Everyone else ({others.length})
@@ -111,7 +180,22 @@ export function AdminMembers() {
                 )}
               </div>
 
-              <div className="mt-3 flex items-center gap-2">
+              {reviewNote(row) && (
+                <p className="mt-1 text-xs text-muted">{reviewNote(row)}</p>
+              )}
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <select
+                  className="input w-auto"
+                  value={row.resident_type}
+                  disabled={busyId === row.id}
+                  onChange={(e) =>
+                    patch(row.id, { resident_type: e.target.value as ResidentType })
+                  }
+                >
+                  <option value="owner">Owner</option>
+                  <option value="tenant">Tenant</option>
+                </select>
                 <select
                   className="input w-auto"
                   value={row.role}
