@@ -9,7 +9,7 @@ const appUrl = process.env.APP_URL?.replace(/\/$/, '')
 
 const config: CapacitorConfig = {
   appId: 'in.society.viom',
-  appName: 'Society',
+  appName: 'Venkatesh Viom',
   webDir: 'dist',
   android: {
     allowMixedContent: false,

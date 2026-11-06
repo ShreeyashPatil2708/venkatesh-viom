@@ -36,14 +36,32 @@ Deno.serve(async (req) => {
     return new Response('ticket not found', { status: 404 })
   }
 
-  const { data: recipients } = await db
+  const { data: committee } = await db
     .from('profiles')
     .select('name, email')
     .eq('status', 'approved')
     .in('role', ['committee', 'admin'])
 
-  if (!recipients?.length) {
-    console.warn('no committee members to notify')
+  // Standing addresses that are copied on every request whoever is on the
+  // committee: the society mailbox keeps a permanent record, and it means a
+  // complaint is never lost mid-handover when nobody holds the role yet.
+  const { data: archive } = await db
+    .from('app_config')
+    .select('value')
+    .eq('key', 'archive_emails')
+    .maybeSingle()
+
+  const recipients = new Map<string, string | undefined>()
+  for (const person of committee ?? []) {
+    if (person.email) recipients.set(person.email.trim().toLowerCase(), person.name)
+  }
+  for (const address of (archive?.value ?? '').split(',')) {
+    const email = address.trim().toLowerCase()
+    if (email && !recipients.has(email)) recipients.set(email, undefined)
+  }
+
+  if (recipients.size === 0) {
+    console.warn('nobody to notify: no committee members and no archive_emails')
     return new Response(JSON.stringify({ sent: 0 }), { status: 200 })
   }
 
@@ -84,23 +102,15 @@ Deno.serve(async (req) => {
   const subject = `[${ticket.ref_code}] ${category}: ${ticket.subject}`
 
   let sent = 0
-  for (const person of recipients) {
-    if (!person.email) continue
+  for (const [email, name] of recipients) {
     const logId = await claim(db, {
       ticket_id: ticket.id,
       kind: 'new_ticket',
-      to_email: person.email,
-      dedupe_key: `new_ticket:${ticket.id}:${person.email}`,
+      to_email: email,
+      dedupe_key: `new_ticket:${ticket.id}:${email}`,
     })
     if (!logId) continue
-    await sendViaBrevo({
-      db,
-      logId,
-      to: { email: person.email, name: person.name },
-      subject,
-      html,
-      text,
-    })
+    await sendViaBrevo({ db, logId, to: { email, name }, subject, html, text })
     sent += 1
   }
 

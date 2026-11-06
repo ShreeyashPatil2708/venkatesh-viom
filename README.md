@@ -1,4 +1,4 @@
-# Society App
+# Venkatesh Viom — society app
 
 Residents (owners and tenants) raise complaints, suggestions and enquiries. The managing
 committee works them from an admin panel. Email goes out automatically both ways: to the
@@ -30,7 +30,7 @@ Nothing below costs money. Steps 1–7 are one-time.
    ```
    VITE_SUPABASE_URL=https://xxxx.supabase.co
    VITE_SUPABASE_ANON_KEY=eyJhb...
-   VITE_SOCIETY_NAME=Viom Residency
+   VITE_SOCIETY_NAME=Venkatesh Viom
    ```
 
 ### 2. Create the database
@@ -82,9 +82,9 @@ openssl rand -hex 32
 
 supabase secrets set \
   BREVO_API_KEY=xkeysib-...               \
-  MAIL_FROM_EMAIL=you@gmail.com           \
-  MAIL_FROM_NAME="Viom Residency"         \
-  SOCIETY_NAME="Viom Residency"           \
+  MAIL_FROM_EMAIL=viompune@gmail.com           \
+  MAIL_FROM_NAME="Venkatesh Viom"         \
+  SOCIETY_NAME="Venkatesh Viom"           \
   APP_URL=https://your-app.vercel.app     \
   WEBHOOK_SECRET=<the random string>
 
@@ -97,7 +97,10 @@ Then tell the database where to find them — in the SQL Editor, with the same s
 ```sql
 insert into app_config (key, value) values
   ('edge_base_url', 'https://<your-project-ref>.supabase.co/functions/v1'),
-  ('webhook_secret', '<the same random string>')
+  ('webhook_secret', '<the same random string>'),
+  -- Copied on every new request, whoever is on the committee at the time.
+  -- Comma separated if you want more than one.
+  ('archive_emails', 'viompune@gmail.com')
 on conflict (key) do update set value = excluded.value;
 ```
 
@@ -163,7 +166,7 @@ Push the repo to a **private** GitHub repo (`gh repo create`), then in
 | Secret | `KEY_ALIAS` | `society` |
 | Secret | `KEY_PASSWORD` | key password you chose |
 | Variable | `APP_URL` | `https://your-app.vercel.app` |
-| Variable | `SOCIETY_NAME` | `Viom Residency` |
+| Variable | `SOCIETY_NAME` | `Venkatesh Viom` |
 
 Run **Actions → Build Android APK → Run workflow**, then download the
 `society-app-apk` artifact. Put the APK where residents can download it too:
@@ -195,7 +198,8 @@ Attach the APK file to the same message.
 ### When the committee changes
 
 Nothing needs rebuilding or redeploying. New-request emails go to whoever currently holds
-the **Committee** or **Admin** role, looked up fresh every time an email is sent. So at
+the **Committee** or **Admin** role, looked up fresh every time an email is sent, plus the
+standing `archive_emails` addresses in `app_config`. So at
 handover the outgoing admin just opens **Admin → Members** and:
 
 1. sets the incoming members to **Committee**, and at least one to **Admin**;
@@ -207,7 +211,7 @@ Do step 1 before step 2, so there is always at least one Admin.
 Two things are *not* dynamic, and both are deliberate:
 
 - **The "from" address** (`MAIL_FROM_EMAIL`). Use a society-owned mailbox such as
-  `viomresidency@gmail.com`, never a current member's personal email — otherwise handover
+  `viompune@gmail.com`, never a current member's personal email — otherwise handover
   breaks the sending address.
 - **The accounts** (Supabase, Vercel, Brevo, GitHub). Create all four under that same
   society mailbox so they can be handed on with the committee. Changing them later means
@@ -229,8 +233,10 @@ does pause, open the dashboard to resume.
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
-npm run build      # typecheck + production build
+npm run dev              # http://localhost:5173
+npm run build            # typecheck + production build
+npm run check:functions  # the two Edge Functions compile
+supabase/tests/run.sh    # row-level security + notification triggers (needs Docker)
 ```
 
 `npm run dev -- --host` serves on your network so you can open it on a phone.

@@ -1,5 +1,5 @@
 {
-  "name": "viom",
+  "name": "venkatesh-viom",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:functions": "esbuild --bundle --external:jsr:* --platform=neutral --format=esm --outdir=node_modules/.cache/fncheck supabase/functions/notify-new-ticket/index.ts supabase/functions/notify-status-change/index.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.2",
@@ -25,6 +26,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "esbuild": "^0.28.2",
     "oxlint": "^1.90.0",
     "tailwindcss": "^4.3.4",
     "typescript": "~7.0.2",

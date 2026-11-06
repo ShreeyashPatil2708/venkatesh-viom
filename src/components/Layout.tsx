@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 
-const SOCIETY_NAME = import.meta.env.VITE_SOCIETY_NAME || 'Our Society'
+const SOCIETY_NAME = import.meta.env.VITE_SOCIETY_NAME || 'Venkatesh Viom'
 
 function Icon({ path }: { path: string }) {
   return (
