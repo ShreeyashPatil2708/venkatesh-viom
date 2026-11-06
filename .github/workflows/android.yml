@@ -66,11 +66,14 @@ jobs:
         run: |
           APK=android/app/build/outputs/apk/release/app-release.apk
           test -f "$APK" || { echo "no APK produced"; exit 1; }
-          "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs "$APK"
-          cp "$APK" society-app.apk
+          # Runners carry several build-tools versions; take the newest rather
+          # than letting the glob expand to all of them.
+          APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs "$APK"
+          cp "$APK" venkatesh-viom.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: society-app-apk
-          path: society-app.apk
+          name: venkatesh-viom-apk
+          path: venkatesh-viom.apk
           if-no-files-found: error
