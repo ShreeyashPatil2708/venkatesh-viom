@@ -2,7 +2,10 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 export const env = {
   supabaseUrl: Deno.env.get('SUPABASE_URL')!,
-  serviceKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  // Projects on the new API keys get SUPABASE_SECRET_KEY; older ones get
+  // SUPABASE_SERVICE_ROLE_KEY. Supabase injects whichever applies.
+  serviceKey: (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ??
+    Deno.env.get('SUPABASE_SECRET_KEY'))!,
   brevoKey: Deno.env.get('BREVO_API_KEY') ?? '',
   fromEmail: Deno.env.get('MAIL_FROM_EMAIL') ?? '',
   fromName: Deno.env.get('MAIL_FROM_NAME') ?? 'Society App',
