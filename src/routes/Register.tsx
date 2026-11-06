@@ -3,7 +3,7 @@ import { CenteredCard } from '../components/Layout'
 import { Alert, Field, Spinner } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { errorMessage, supabase } from '../lib/supabase'
-import type { Flat, ResidentType } from '../lib/types'
+import { compareFlats, type Flat, type ResidentType } from '../lib/types'
 
 /** Shown once, straight after a new email signs in: who are you and which flat? */
 export function Register() {
@@ -24,7 +24,7 @@ export function Register() {
       .order('number')
       .then(({ data, error }) => {
         if (error) setError(errorMessage(error))
-        else setFlats((data as Flat[]) ?? [])
+        else setFlats([...((data as Flat[]) ?? [])].sort(compareFlats))
       })
   }, [])
 

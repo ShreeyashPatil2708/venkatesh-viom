@@ -102,3 +102,20 @@ export const ROLE_LABEL: Record<UserRole, string> = {
   committee: 'Committee',
   admin: 'Admin',
 }
+
+/**
+ * Flat numbers are text, so a plain sort puts A-1001 before A-102. Order by
+ * wing, then numerically: A-101 … A-1104, then B-101 … B-1104. The committee's
+ * Office, which has no wing, sorts last.
+ */
+export function compareFlats(a: Flat, b: Flat): number {
+  const aNoWing = a.wing === ''
+  const bNoWing = b.wing === ''
+  if (aNoWing !== bNoWing) return aNoWing ? 1 : -1
+  if (a.wing !== b.wing) return a.wing.localeCompare(b.wing)
+
+  const na = Number(a.number)
+  const nb = Number(b.number)
+  if (Number.isNaN(na) || Number.isNaN(nb)) return a.number.localeCompare(b.number)
+  return na - nb
+}

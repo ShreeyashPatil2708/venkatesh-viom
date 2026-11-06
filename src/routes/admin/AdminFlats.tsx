@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRefresh } from '../../lib/refresh'
 import { Alert, EmptyState, Field, PageHeader, Spinner } from '../../components/ui'
 import { errorMessage, supabase } from '../../lib/supabase'
-import type { Flat } from '../../lib/types'
+import { compareFlats, type Flat } from '../../lib/types'
 
 /** Accepts "A-101", "A 101", "B/202" or bare "101", one per line or comma separated. */
 function parseFlatList(text: string): { wing: string; number: string }[] {
@@ -39,7 +39,7 @@ export function AdminFlats() {
       .order('wing')
       .order('number')
     if (error) setError(errorMessage(error))
-    setFlats((data as Flat[]) ?? [])
+    setFlats([...((data as Flat[]) ?? [])].sort(compareFlats))
   }, [])
 
   useEffect(() => {
