@@ -43,3 +43,7 @@ android/app/src/main/assets/capacitor.config.json
 # Built APKs are published as GitHub Releases, never committed: a copy under
 # public/ would be bundled into the next APK, doubling its size each build.
 public/app/*.apk
+
+# Firebase config: project identifiers, not a secret, but kept out of the
+# public repo. CI gets it from the GOOGLE_SERVICES_JSON secret.
+android/app/google-services.json
