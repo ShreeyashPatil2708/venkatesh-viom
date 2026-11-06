@@ -27,6 +27,8 @@ dist-ssr
 .env
 .env.*
 !.env.example
+.vercel
+supabase/.temp
 *.keystore
 *.jks
 keystore.properties

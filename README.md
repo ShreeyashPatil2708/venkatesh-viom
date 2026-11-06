@@ -82,7 +82,7 @@ openssl rand -hex 32
 
 supabase secrets set \
   BREVO_API_KEY=xkeysib-...               \
-  MAIL_FROM_EMAIL=viompune@gmail.com           \
+  MAIL_FROM_EMAIL=<the society mailbox>           \
   MAIL_FROM_NAME="Venkatesh Viom"         \
   SOCIETY_NAME="Venkatesh Viom"           \
   APP_URL=https://your-app.vercel.app     \
@@ -100,7 +100,7 @@ insert into app_config (key, value) values
   ('webhook_secret', '<the same random string>'),
   -- Copied on every new request, whoever is on the committee at the time.
   -- Comma separated if you want more than one.
-  ('archive_emails', 'viompune@gmail.com')
+  ('archive_emails', '<the society mailbox>')
 on conflict (key) do update set value = excluded.value;
 ```
 
@@ -210,8 +210,8 @@ Do step 1 before step 2, so there is always at least one Admin.
 
 Two things are *not* dynamic, and both are deliberate:
 
-- **The "from" address** (`MAIL_FROM_EMAIL`). Use a society-owned mailbox such as
-  `viompune@gmail.com`, never a current member's personal email — otherwise handover
+- **The "from" address** (`MAIL_FROM_EMAIL`). Use a society-owned mailbox, never a current
+  member's personal email — otherwise handover
   breaks the sending address.
 - **The accounts** (Supabase, Vercel, Brevo, GitHub). Create all four under that same
   society mailbox so they can be handed on with the committee. Changing them later means
