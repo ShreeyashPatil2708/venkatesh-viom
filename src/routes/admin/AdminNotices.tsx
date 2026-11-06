@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useRefresh } from '../../lib/refresh'
 import { Alert, EmptyState, Field, PageHeader, Spinner, formatDate } from '../../components/ui'
 import { useAuth } from '../../lib/auth'
 import { errorMessage, supabase } from '../../lib/supabase'
 import type { Notice } from '../../lib/types'
 
 export function AdminNotices() {
+  const { refreshKey } = useRefresh()
   const { session } = useAuth()
   const [notices, setNotices] = useState<Notice[] | null>(null)
   const [title, setTitle] = useState('')
@@ -26,7 +28,7 @@ export function AdminNotices() {
 
   useEffect(() => {
     void load()
-  }, [load])
+  }, [load, refreshKey])
 
   async function create(e: React.FormEvent) {
     e.preventDefault()

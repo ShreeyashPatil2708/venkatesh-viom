@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useRefresh } from '../lib/refresh'
 import { Alert, EmptyState, PageHeader, Spinner, formatDateTime } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { useNotifications } from '../lib/notifications'
@@ -7,6 +8,7 @@ import { errorMessage, supabase } from '../lib/supabase'
 import type { AppNotification } from '../lib/types'
 
 export function NotificationsScreen() {
+  const { refreshKey } = useRefresh()
   const { isCommittee } = useAuth()
   const { refresh } = useNotifications()
   const navigate = useNavigate()
@@ -26,7 +28,7 @@ export function NotificationsScreen() {
 
   useEffect(() => {
     void load()
-  }, [load])
+  }, [load, refreshKey])
 
   async function open(item: AppNotification) {
     if (!item.read_at) {

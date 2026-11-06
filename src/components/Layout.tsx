@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { PullToRefresh } from './PullToRefresh'
 import { useAuth } from '../lib/auth'
 import { useNotifications } from '../lib/notifications'
 
@@ -45,7 +46,7 @@ export function Layout() {
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-10 border-b border-line bg-white/90 backdrop-blur">
+      <header className="safe-top sticky top-0 z-10 border-b border-line bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-4">
           <span className="flex-1 truncate font-bold tracking-tight">{SOCIETY_NAME}</span>
           <button
@@ -64,7 +65,9 @@ export function Layout() {
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-5 pb-28">
-        <Outlet />
+        <PullToRefresh>
+          <Outlet />
+        </PullToRefresh>
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-white pb-[env(safe-area-inset-bottom)]">
@@ -93,7 +96,7 @@ export function Layout() {
 /** Centred card used by the login, sign-up and waiting screens. */
 export function CenteredCard({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
-    <div className="flex min-h-dvh flex-col justify-center px-4 py-10">
+    <div className="safe-top flex min-h-dvh flex-col justify-center px-4 py-10">
       <div className="mx-auto w-full max-w-md">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-brand-600 text-2xl font-bold text-white">

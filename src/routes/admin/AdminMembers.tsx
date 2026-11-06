@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useRefresh } from '../../lib/refresh'
 import { Alert, EmptyState, PageHeader, Spinner, formatDate } from '../../components/ui'
 import { useAuth } from '../../lib/auth'
 import { errorMessage, supabase } from '../../lib/supabase'
@@ -14,6 +15,7 @@ import {
 type Row = Profile & { flats: { label: string } | null }
 
 export function AdminMembers() {
+  const { refreshKey } = useRefresh()
   const { profile } = useAuth()
   const [rows, setRows] = useState<Row[] | null>(null)
   const [error, setError] = useState('')
@@ -31,7 +33,7 @@ export function AdminMembers() {
 
   useEffect(() => {
     void load()
-  }, [load])
+  }, [load, refreshKey])
 
   async function renew(id: string) {
     setBusyId(id)

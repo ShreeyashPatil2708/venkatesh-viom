@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useRefresh } from '../../lib/refresh'
 import { Alert, EmptyState, Field, PageHeader, Spinner } from '../../components/ui'
 import { errorMessage, supabase } from '../../lib/supabase'
 import type { Flat } from '../../lib/types'
@@ -23,6 +24,7 @@ function parseFlatList(text: string): { wing: string; number: string }[] {
 }
 
 export function AdminFlats() {
+  const { refreshKey } = useRefresh()
   const [flats, setFlats] = useState<Flat[] | null>(null)
   const [bulk, setBulk] = useState('')
   const [busy, setBusy] = useState(false)
@@ -42,7 +44,7 @@ export function AdminFlats() {
 
   useEffect(() => {
     void load()
-  }, [load])
+  }, [load, refreshKey])
 
   const parsed = parseFlatList(bulk)
 

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { useRefresh } from '../lib/refresh'
 import { Alert, EmptyState, PageHeader, Spinner, formatDate } from '../components/ui'
 import { errorMessage, supabase } from '../lib/supabase'
 import type { Notice } from '../lib/types'
 
 export function Notices() {
+  const { refreshKey } = useRefresh()
   const [notices, setNotices] = useState<Notice[] | null>(null)
   const [error, setError] = useState('')
 
@@ -17,7 +19,7 @@ export function Notices() {
         if (error) setError(errorMessage(error))
         setNotices((data as Notice[]) ?? [])
       })
-  }, [])
+  }, [refreshKey])
 
   return (
     <>

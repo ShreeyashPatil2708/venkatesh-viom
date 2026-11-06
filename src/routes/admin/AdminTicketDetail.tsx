@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useRefresh } from '../../lib/refresh'
 import { TicketPhoto, Timeline } from '../../components/TicketBits'
 import { Alert, CategoryChip, Field, Spinner, StatusChip, formatDateTime } from '../../components/ui'
 import { errorMessage, supabase } from '../../lib/supabase'
@@ -14,6 +15,7 @@ import {
 const STATUSES: TicketStatus[] = ['new', 'in_progress', 'resolved', 'closed']
 
 export function AdminTicketDetail() {
+  const { refreshKey } = useRefresh()
   const { id } = useParams<{ id: string }>()
   const [ticket, setTicket] = useState<TicketWithRelations | null>(null)
   const [updates, setUpdates] = useState<TicketUpdate[]>([])
@@ -61,7 +63,7 @@ export function AdminTicketDetail() {
 
   useEffect(() => {
     void load()
-  }, [load])
+  }, [load, refreshKey])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()

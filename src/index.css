@@ -68,6 +68,12 @@
   @apply btn border border-red-200 bg-white text-red-700 hover:bg-red-50;
 }
 
+/* Android and iOS draw the app edge-to-edge under the status bar, so anything
+   pinned to the top must hold its own clearance for the clock and battery. */
+@utility safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
 @utility card {
   @apply rounded-2xl border border-line bg-white;
 }

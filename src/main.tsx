@@ -5,13 +5,16 @@ import App from './App'
 import './index.css'
 import { AuthProvider } from './lib/auth'
 import { NotificationProvider } from './lib/notifications'
+import { RefreshProvider } from './lib/refresh'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
         <NotificationProvider>
-          <App />
+          <RefreshProvider>
+            <App />
+          </RefreshProvider>
         </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>

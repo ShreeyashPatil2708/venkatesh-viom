@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
+import { useRefresh } from '../lib/refresh'
 import { TicketPhoto, Timeline } from '../components/TicketBits'
 import { Alert, CategoryChip, Spinner, StatusChip, formatDateTime } from '../components/ui'
 import { errorMessage, supabase } from '../lib/supabase'
 import type { Ticket, TicketUpdate } from '../lib/types'
 
 export function TicketDetail() {
+  const { refreshKey } = useRefresh()
   const { id } = useParams<{ id: string }>()
   const location = useLocation()
   const justCreated = (location.state as { justCreated?: boolean } | null)?.justCreated
@@ -34,7 +36,7 @@ export function TicketDetail() {
     return () => {
       active = false
     }
-  }, [id])
+  }, [id, refreshKey])
 
   if (loading) {
     return (

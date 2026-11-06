@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useRefresh } from '../../lib/refresh'
 import { TicketListItem } from '../../components/TicketBits'
 import { Alert, EmptyState, PageHeader, Spinner } from '../../components/ui'
 import { errorMessage, supabase } from '../../lib/supabase'
@@ -26,6 +27,7 @@ const FILTER_LABEL: Record<string, string> = {
 }
 
 export function AdminTickets() {
+  const { refreshKey } = useRefresh()
   const [tickets, setTickets] = useState<TicketWithRelations[] | null>(null)
   const [error, setError] = useState('')
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>('open')
@@ -44,7 +46,7 @@ export function AdminTickets() {
         if (error) setError(errorMessage(error))
         setTickets((data as TicketWithRelations[]) ?? [])
       })
-  }, [])
+  }, [refreshKey])
 
   const counts = useMemo(() => {
     const base: Record<string, number> = { all: tickets?.length ?? 0, open: 0 }

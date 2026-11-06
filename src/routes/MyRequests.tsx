@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useRefresh } from '../lib/refresh'
 import { TicketListItem } from '../components/TicketBits'
 import { Alert, EmptyState, PageHeader, Spinner } from '../components/ui'
 import { useAuth } from '../lib/auth'
@@ -7,6 +8,7 @@ import { errorMessage, supabase } from '../lib/supabase'
 import type { Ticket } from '../lib/types'
 
 export function MyRequests() {
+  const { refreshKey } = useRefresh()
   const { session } = useAuth()
   const [tickets, setTickets] = useState<Ticket[] | null>(null)
   const [error, setError] = useState('')
@@ -22,7 +24,7 @@ export function MyRequests() {
         if (error) setError(errorMessage(error))
         setTickets((data as Ticket[]) ?? [])
       })
-  }, [session])
+  }, [session, refreshKey])
 
   return (
     <>
