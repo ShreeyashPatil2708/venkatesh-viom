@@ -75,7 +75,10 @@ sign up (email -> code -> flat/name/mobile/owner-tenant) -> status: pending
 
 ## Who gets told what
 
-| Event | Email | In-app bell |
+Every in-app notification is also pushed to that user's phones via FCM, so
+push and bell can never disagree.
+
+| Event | Email | In-app bell + push |
 |---|---|---|
 | Complaint raised | every committee+admin, plus `app_config.archive_emails` | every committee+admin except the raiser |
 | Status changed | the resident who raised it | same |
@@ -84,6 +87,22 @@ sign up (email -> code -> flat/name/mobile/owner-tenant) -> status: pending
 | New sign-up | nobody (88 at launch would be noise) | every admin |
 
 `email_log.dedupe_key` makes a retried trigger a no-op. Check it when an email is missing.
+
+## Push notifications
+
+Firebase project `venkatesh-viom`, Android app package `in.society.viom`.
+
+- `device_tokens` holds each phone's FCM token, readable/writable only by its user.
+- Any insert into `notifications` triggers `send-push`, which mints a service-account
+  JWT, exchanges it for an access token (cached), and posts to FCM HTTP v1. The legacy
+  server-key API is retired, so v1 is the only option.
+- Tokens rejected by FCM (uninstalled app) are deleted rather than retried.
+- `FCM_SERVICE_ACCOUNT` is a Supabase secret holding the whole service-account JSON.
+  `GOOGLE_SERVICES_JSON` is a base64 GitHub secret; the workflow writes it to
+  `android/app/google-services.json` at build time. Neither is in the repo.
+- Without `FCM_SERVICE_ACCOUNT`, send-push returns "not configured" and bell + email
+  carry on unaffected.
+- Push needs a **new APK**; the web app alone cannot deliver it.
 
 ## Database
 
